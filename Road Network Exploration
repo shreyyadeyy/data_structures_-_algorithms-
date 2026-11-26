@@ -1,0 +1,46 @@
+
+# Create graph using adjacency matrix
+
+n = int(input("Enter number of intersections: "))
+
+# Create adjacency matrix
+graph = [[0 for i in range(n)] for j in range(n)]
+
+# Add roads between intersections
+e = int(input("Enter number of roads: "))
+
+for i in range(e):
+    u = int(input("Enter starting intersection: "))
+    v = int(input("Enter ending intersection: "))
+
+    graph[u][v] = 1
+    graph[v][u] = 1
+
+# Display adjacency matrix
+print("\nAdjacency Matrix:")
+for row in graph:
+    print(row)
+
+# DFS traversal
+def DFS(graph, start, visited):
+    print(start, end=" ")
+    visited[start] = True
+
+    for i in range(len(graph)):
+        if graph[start][i] == 1 and not visited[i]:
+            DFS(graph, i, visited)
+
+# Explore connected locations
+start = int(input("\nEnter starting intersection: "))
+
+visited = [False] * n
+
+print("\nDFS Road Network Exploration:")
+DFS(graph, start, visited)
+
+# Check unvisited locations
+print("\nUnvisited intersections:")
+for i in range(n):
+    if not visited[i]:
+        print(i, end=" ")
+print()
