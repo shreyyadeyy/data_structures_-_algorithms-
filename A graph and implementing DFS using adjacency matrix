@@ -1,0 +1,40 @@
+
+# Create Graph using Adjacency Matrix
+
+n = int(input("Enter number of vertices: "))
+
+# Create adjacency matrix
+graph = [[0 for i in range(n)] for j in range(n)]
+
+# Add edges
+e = int(input("Enter number of edges: "))
+
+for i in range(e):
+    u = int(input("Enter starting vertex: "))
+    v = int(input("Enter ending vertex: "))
+
+    graph[u][v] = 1
+    graph[v][u] = 1
+
+# Display adjacency matrix
+print("\nAdjacency Matrix:")
+for row in graph:
+    print(row)
+
+# DFS Function
+def DFS(graph, start, visited):
+    print(start, end=" ")
+    visited[start] = True
+
+    for i in range(len(graph)):
+        if graph[start][i] == 1 and not visited[i]:
+            DFS(graph, i, visited)
+
+# Perform DFS
+start = int(input("\nEnter starting vertex: "))
+
+visited = [False] * n
+
+print("DFS Traversal:")
+DFS(graph, start, visited)
+print()
