@@ -1,0 +1,131 @@
+import bisect
+import os
+
+
+class LibraryBookIndex:
+    def __init__(self, data_file="books.dat", index_file="books.idx"):
+        self.data_file = data_file
+        self.index_file = index_file
+        # Sorted list of (book_id, byte_offset) tuples
+        self.index = []
+        self._load_index()
+
+    def _load_index(self):
+        """Loads sorted (book_id, byte_offset) entries from the index file."""
+        self.index = []
+        if not os.path.exists(self.index_file):
+            return
+
+        with open(self.index_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    book_id_str, offset_str = line.split(":")
+                    self.index.append((int(book_id_str), int(offset_str)))
+        self.index.sort(key=lambda entry: entry[0])
+
+    def _save_index(self):
+        """Writes the sorted primary index to disk."""
+        with open(self.index_file, "w", encoding="utf-8") as f:
+            for book_id, offset in self.index:
+                f.write(f"{book_id}:{offset}\n")
+
+    def _binary_search_index(self, book_id):
+        """Returns the position of book_id in self.index, or -1 if absent."""
+        keys = [entry[0] for entry in self.index]
+        pos = bisect.bisect_left(keys, book_id)
+        if pos < len(self.index) and self.index[pos][0] == book_id:
+            return pos
+        return -1
+
+    def add_book(self, book_id, title, author, genre, year):
+        """Appends a new book record to books.dat and updates books.idx."""
+        if self._binary_search_index(book_id) != -1:
+            raise ValueError(f"Book ID {book_id} already exists in the catalog.")
+
+        record = f"{book_id}|{title}|{author}|{genre}|{year}\n".encode("utf-8")
+
+        with open(self.data_file, "ab") as f:
+            byte_offset = f.tell()
+            f.write(record)
+
+        bisect.insort(self.index, (book_id, byte_offset))
+        self._save_index()
+
+    def get_book(self, book_id):
+        """Locates a book via binary search on the index and seeks directly in books.dat."""
+        pos = self._binary_search_index(book_id)
+        if pos == -1:
+            return None
+
+        _, byte_offset = self.index[pos]
+        with open(self.data_file, "rb") as f:
+            f.seek(byte_offset)
+            raw_record = f.readline().decode("utf-8").strip()
+
+        rec_id, title, author, genre, year = raw_record.split("|")
+        return {
+            "book_id": int(rec_id),
+            "title": title,
+            "author": author,
+            "genre": genre,
+            "year": int(year),
+            "byte_offset": byte_offset,
+        }
+
+    def remove_book(self, book_id):
+        """Removes a book's entry from the index file (logical deletion)."""
+        pos = self._binary_search_index(book_id)
+        if pos == -1:
+            return False
+
+        self.index.pop(pos)
+        self._save_index()
+        return True
+
+    def display_catalog_files(self):
+        """Displays the raw contents of books.idx and books.dat."""
+        print("=== Index File (books.idx: Sorted Book ID -> Byte Offset) ===")
+        if os.path.exists(self.index_file):
+            with open(self.index_file, "r", encoding="utf-8") as f:
+                print(f.read().strip() or "(empty)")
+
+        print("\n=== Data File (books.dat: Sequential Records) ===")
+        if os.path.exists(self.data_file):
+            with open(self.data_file, "rb") as f:
+                while True:
+                    offset = f.tell()
+                    line = f.readline()
+                    if not line:
+                        break
+                    print(f"[Offset {offset:03d}] {line.decode('utf-8').strip()}")
+
+
+# --- Example Usage ---
+if __name__ == "__main__":
+    # Reset sample files for a clean demonstration
+    for file_path in ("books.dat", "books.idx"):
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+    library = LibraryBookIndex("books.dat", "books.idx")
+
+    # Add books in arbitrary Book ID order
+    library.add_book(504, "Clean Code", "Robert C. Martin", "Software Engineering", 2008)
+    library.add_book(102, "Introduction to Algorithms", "Thomas H. Cormen", "Computer Science", 2009)
+    library.add_book(318, "Designing Data-Intensive Applications", "Martin Kleppmann", "Distributed Systems", 2017)
+    library.add_book(215, "The Pragmatic Programmer", "Andrew Hunt", "Software Engineering", 1999)
+
+    library.display_catalog_files()
+
+    print("\n=== Direct Book Retrieval (Book ID: 318) ===")
+    book = library.get_book(318)
+    if book:
+        print(
+            f"Found '{book['title']}' by {book['author']} ({book['year']}) "
+            f"at byte offset {book['byte_offset']}."
+        )
+
+    print("\n=== Removing Book ID 102 from Index ===")
+    library.remove_book(102)
+    print("Lookup Book ID 102 after removal:", library.get_book(102))
