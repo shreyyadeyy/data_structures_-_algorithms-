@@ -1,0 +1,70 @@
+from collections import deque
+
+class SocialNetwork:
+    def __init__(self):
+        # Adjacency list: {user: set_of_friends}
+        self.graph = {}
+
+    def add_user(self, user):
+        if user not in self.graph:
+            self.graph[user] = set()
+
+    def add_friendship(self, user1, user2):
+        if user1 == user2:
+            return
+        self.add_user(user1)
+        self.add_user(user2)
+        # Undirected edge for mutual friendship
+        self.graph[user1].add(user2)
+        self.graph[user2].add(user1)
+
+    def get_levels_bfs(self, start_user):
+        """
+        Returns a dictionary mapping each degree of separation (level)
+        to the list of users at that level from start_user.
+        """
+        if start_user not in self.graph:
+            return {}
+
+        visited = {start_user}
+        queue = deque([start_user])
+        levels = {}
+        current_level = 0
+
+        while queue:
+            level_size = len(queue)
+            levels[current_level] = []
+
+            for _ in range(level_size):
+                user = queue.popleft()
+                levels[current_level].append(user)
+
+                for friend in sorted(self.graph[user]):
+                    if friend not in visited:
+                        visited.add(friend)
+                        queue.append(friend)
+
+            current_level += 1
+
+        return levels
+
+
+# --- Example Usage ---
+if __name__ == "__main__":
+    network = SocialNetwork()
+    friendships = [
+        ("Aarav", "Priya"),
+        ("Aarav", "Rohan"),
+        ("Priya", "Sneha"),
+        ("Rohan", "Sneha"),
+        ("Rohan", "Vikram"),
+        ("Sneha", "Ananya"),
+        ("Vikram", "Kabir")
+    ]
+
+    for u1, u2 in friendships:
+        network.add_friendship(u1, u2)
+
+    levels = network.get_levels_bfs("Aarav")
+    for level, users in levels.items():
+        print(f"Level {level}: {users}")
