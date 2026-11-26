@@ -1,0 +1,125 @@
+class HashTableLinearProbing:
+    def __init__(self, size=10, with_replacement=False):
+        self.size = size
+        self.with_replacement = with_replacement
+        # Each slot holds None, a (key, value) tuple, or a tombstone marker
+        self.table = [None] * size
+        self.DELETED = object()
+        self.count = 0
+
+    def _hash(self, key):
+        return hash(key) % self.size
+
+    def insert(self, key, value):
+        if self.count >= self.size:
+            raise OverflowError("Hash table is full.")
+
+        home_idx = self._hash(key)
+
+        # Case 1: Slot is empty or marked deleted
+        if self.table[home_idx] is None or self.table[home_idx] is self.DELETED:
+            self.table[home_idx] = (key, value)
+            self.count += 1
+            return
+
+        # Case 2: Updating an existing key right at its home slot
+        if self.table[home_idx][0] == key:
+            self.table[home_idx] = (key, value)
+            return
+
+        # Case 3: Collision at home_idx
+        if self.with_replacement:
+            occupant_key, occupant_val = self.table[home_idx]
+            occupant_home = self._hash(occupant_key)
+
+            # Evict occupant if it is sitting away from its own home index
+            if occupant_home != home_idx:
+                self.table[home_idx] = (key, value)
+                # Re-insert the displaced key via linear probing
+                self._probe_and_place(occupant_key, occupant_val, (home_idx + 1) % self.size)
+                self.count += 1
+                return
+
+        # Standard linear probe forward (used when without_replacement=True
+        # OR when the occupant at home_idx genuinely belongs there)
+        self._probe_and_place(key, value, home_idx)
+
+    def _probe_and_place(self, key, value, start_idx):
+        first_deleted = None
+        for step in range(self.size):
+            idx = (start_idx + step) % self.size
+            slot = self.table[idx]
+
+            if slot is None:
+                target = first_deleted if first_deleted is not None else idx
+                self.table[target] = (key, value)
+                self.count += 1
+                return
+
+            if slot is self.DELETED:
+                if first_deleted is None:
+                    first_deleted = idx
+            elif slot[0] == key:
+                # Update existing key
+                self.table[idx] = (key, value)
+                return
+
+        if first_deleted is not None:
+            self.table[first_deleted] = (key, value)
+            self.count += 1
+
+    def search(self, key):
+        start_idx = self._hash(key)
+        for step in range(self.size):
+            idx = (start_idx + step) % self.size
+            slot = self.table[idx]
+
+            if slot is None:
+                return None  # Key cannot exist past an empty slot
+            if slot is not self.DELETED and slot[0] == key:
+                return slot[1]
+        return None
+
+    def delete(self, key):
+        start_idx = self._hash(key)
+        for step in range(self.size):
+            idx = (start_idx + step) % self.size
+            slot = self.table[idx]
+
+            if slot is None:
+                return False
+            if slot is not self.DELETED and slot[0] == key:
+                # Use tombstone so future searches do not break the probe chain
+                self.table[idx] = self.DELETED
+                self.count -= 1
+                return True
+        return False
+
+    def display(self):
+        for idx, slot in enumerate(self.table):
+            if slot is None:
+                status = "EMPTY"
+            elif slot is self.DELETED:
+                status = "DELETED"
+            else:
+                k, v = slot
+                status = f"{k}: {v} (home={self._hash(k)})"
+            print(f"Index {idx}: {status}")
+
+
+# --- Example Usage ---
+if __name__ == "__main__":
+    # Using integer keys where hash(k) == k in Python for clear modulo trace
+    entries = [(10, "A"), (20, "B"), (21, "C"), (11, "D"), (30, "E")]
+
+    print("=== Linear Probing WITHOUT Replacement (Table Size = 10) ===")
+    ht_no_rep = HashTableLinearProbing(size=10, with_replacement=False)
+    for k, v in entries:
+        ht_no_rep.insert(k, v)
+    ht_no_rep.display()
+
+    print("\n=== Linear Probing WITH Replacement (Table Size = 10) ===")
+    ht_with_rep = HashTableLinearProbing(size=10, with_replacement=True)
+    for k, v in entries:
+        ht_with_rep.insert(k, v)
+    ht_with_rep.display()
