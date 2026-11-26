@@ -1,0 +1,92 @@
+
+# Node class
+class Node:
+    def __init__(self, roll, name):
+        self.roll = roll
+        self.name = name
+        self.left = None
+        self.right = None
+
+# Insert student record into BST
+def insert(root, roll, name):
+    if root is None:
+        return Node(roll, name)
+
+    if roll < root.roll:
+        root.left = insert(root.left, roll, name)
+    elif roll > root.roll:
+        root.right = insert(root.right, roll, name)
+    else:
+        print("Roll number already exists!")
+    
+    return root
+
+# Non-recursive Inorder Traversal
+def inorder(root):
+    stack = []
+    current = root
+
+    print("\nInorder Traversal:")
+    while current is not None or stack:
+        while current is not None:
+            stack.append(current)
+            current = current.left
+
+        current = stack.pop()
+        print(current.roll, "-", current.name)
+        current = current.right
+
+# Non-recursive Preorder Traversal
+def preorder(root):
+    if root is None:
+        return
+
+    stack = [root]
+
+    print("\nPreorder Traversal:")
+    while stack:
+        current = stack.pop()
+        print(current.roll, "-", current.name)
+
+        if current.right:
+            stack.append(current.right)
+
+        if current.left:
+            stack.append(current.left)
+
+# Main program
+root = None
+
+while True:
+    print("\n--- Student Admission Management ---")
+    print("1. Insert Student Record")
+    print("2. Inorder Traversal")
+    print("3. Preorder Traversal")
+    print("4. Exit")
+
+    choice = int(input("Enter your choice: "))
+
+    if choice == 1:
+        roll = int(input("Enter Roll Number: "))
+        name = input("Enter Student Name: ")
+        root = insert(root, roll, name)
+        print("Student record inserted successfully!")
+
+    elif choice == 2:
+        if root is None:
+            print("BST is Empty")
+        else:
+            inorder(root)
+
+    elif choice == 3:
+        if root is None:
+            print("BST is Empty")
+        else:
+            preorder(root)
+
+    elif choice == 4:
+        print("Program Ended")
+        break
+
+    else:
+        print("Invalid Choice!")
