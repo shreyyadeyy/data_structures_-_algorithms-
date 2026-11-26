@@ -1,0 +1,64 @@
+
+# Node class
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.left = None
+        self.right = None
+
+# Insert into Binary Search Tree
+def insert(root, data):
+    if root is None:
+        return Node(data)
+
+    if data < root.data:
+        root.left = insert(root.left, data)
+    else:
+        root.right = insert(root.right, data)
+
+    return root
+
+# Non-Recursive Inorder Traversal
+def inorder(root):
+    stack = []
+    current = root
+
+    print("Inorder Traversal:")
+    while current is not None or stack:
+        while current is not None:
+            stack.append(current)
+            current = current.left
+
+        current = stack.pop()
+        print(current.data, end=" ")
+        current = current.right
+
+# Non-Recursive Preorder Traversal
+def preorder(root):
+    if root is None:
+        return
+
+    stack = [root]
+
+    print("\nPreorder Traversal:")
+    while stack:
+        current = stack.pop()
+        print(current.data, end=" ")
+
+        if current.right:
+            stack.append(current.right)
+
+        if current.left:
+            stack.append(current.left)
+
+# Main program
+root = None
+
+n = int(input("Enter number of nodes: "))
+
+for i in range(n):
+    value = int(input("Enter value: "))
+    root = insert(root, value)
+
+inorder(root)
+preorder(root)
