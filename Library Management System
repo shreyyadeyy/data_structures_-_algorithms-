@@ -1,0 +1,59 @@
+
+# Stack implementation using a list
+
+stack = []
+
+# Return Book (Push)
+def return_book():
+    book = input("Enter book name: ")
+    stack.append(book)
+    print(book, "added to stack.")
+
+# Arrange Book (Pop)
+def arrange_book():
+    if len(stack) == 0:
+        print("Stack is empty!")
+    else:
+        book = stack.pop()
+        print(book, "is taken for shelving.")
+
+# Top Book (Peek)
+def top_book():
+    if len(stack) == 0:
+        print("Stack is empty!")
+    else:
+        print("Top book:", stack[-1])
+
+# Display Stack
+def display():
+    if len(stack) == 0:
+        print("Stack is empty!")
+    else:
+        print("Returned Books Stack:")
+        for book in reversed(stack):
+            print(book)
+
+# Menu-driven program
+while True:
+    print("\n--- Library Book Management ---")
+    print("1. Return Book (Push)")
+    print("2. Arrange Book (Pop)")
+    print("3. Top Book (Peek)")
+    print("4. Display Stack")
+    print("5. Exit")
+
+    choice = int(input("Enter your choice: "))
+
+    if choice == 1:
+        return_book()
+    elif choice == 2:
+        arrange_book()
+    elif choice == 3:
+        top_book()
+    elif choice == 4:
+        display()
+    elif choice == 5:
+        print("Exiting program...")
+        break
+    else:
+        print("Invalid choice! Try again.")
