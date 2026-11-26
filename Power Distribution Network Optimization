@@ -1,0 +1,116 @@
+class DisjointSet:
+    def __init__(self, substations):
+        self.parent = {s: s for s in substations}
+        self.rank = {s: 0 for s in substations}
+
+    def find(self, item):
+        # Path compression
+        if self.parent[item] != item:
+            self.parent[item] = self.find(self.parent[item])
+        return self.parent[item]
+
+    def union(self, set1, set2):
+        root1 = self.find(set1)
+        root2 = self.find(set2)
+
+        if root1 == root2:
+            return False  # Cycle detected
+
+        # Union by rank
+        if self.rank[root1] < self.rank[root2]:
+            self.parent[root1] = root2
+        elif self.rank[root1] > self.rank[root2]:
+            self.parent[root2] = root1
+        else:
+            self.parent[root2] = root1
+            self.rank[root1] += 1
+        return True
+
+
+class PowerGridNetwork:
+    def __init__(self):
+        # Adjacency list: {substation: [(neighbor, cost_in_lakhs), ...]}
+        self.adj_list = {}
+
+    def add_substation(self, name):
+        if name not in self.adj_list:
+            self.adj_list[name] = []
+
+    def add_possible_route(self, sub1, sub2, cost):
+        self.add_substation(sub1)
+        self.add_substation(sub2)
+        self.adj_list[sub1].append((sub2, cost))
+        self.adj_list[sub2].append((sub1, cost))
+
+    def display_network(self):
+        for substation, routes in sorted(self.adj_list.items()):
+            print(f"{substation}: {routes}")
+
+    def optimize_wiring_kruskal(self):
+        """
+        Computes the Minimum Spanning Tree using Kruskal's algorithm.
+        Returns (selected_cables, total_wiring_cost).
+        """
+        substations = list(self.adj_list.keys())
+        num_substations = len(substations)
+        if num_substations == 0:
+            return [], 0
+
+        # Extract unique undirected edges from the adjacency list
+        edges = []
+        seen_pairs = set()
+        for u, neighbors in self.adj_list.items():
+            for v, cost in neighbors:
+                pair = tuple(sorted((u, v)))
+                if pair not in seen_pairs:
+                    seen_pairs.add(pair)
+                    edges.append((cost, u, v))
+
+        # Sort routes by ascending wiring cost
+        edges.sort(key=lambda x: x[0])
+
+        dsu = DisjointSet(substations)
+        selected_cables = []
+        total_cost = 0
+
+        for cost, u, v in edges:
+            if dsu.union(u, v):
+                selected_cables.append((u, v, cost))
+                total_cost += cost
+                if len(selected_cables) == num_substations - 1:
+                    break
+
+        if len(selected_cables) != num_substations - 1:
+            raise ValueError("Grid is disconnected; not all substations can be powered.")
+
+        return selected_cables, total_cost
+
+
+# --- Example Usage ---
+if __name__ == "__main__":
+    grid = PowerGridNetwork()
+
+    # Candidate cable routes with installation costs (in ₹ Lakhs)
+    candidate_routes = [
+        ("Substation-North", "Substation-Central", 12),
+        ("Substation-North", "Substation-East", 18),
+        ("Substation-Central", "Substation-East", 10),
+        ("Substation-Central", "Substation-West", 15),
+        ("Substation-Central", "Substation-South", 22),
+        ("Substation-East", "Substation-South", 14),
+        ("Substation-West", "Substation-South", 11),
+        ("Substation-West", "Substation-Industrial", 9),
+        ("Substation-South", "Substation-Industrial", 16),
+    ]
+
+    for s1, s2, cost in candidate_routes:
+        grid.add_possible_route(s1, s2, cost)
+
+    print("Adjacency List (Candidate Routes & Cost in ₹ Lakhs):")
+    grid.display_network()
+
+    mst_cables, min_cost = grid.optimize_wiring_kruskal()
+    print("\nOptimal Cabling Plan (MST):")
+    for u, v, cost in mst_cables:
+        print(f"{u} <---> {v} : ₹{cost} Lakhs")
+    print(f"Minimum Total Wiring Cost: ₹{min_cost} Lakhs")
