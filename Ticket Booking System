@@ -1,0 +1,49 @@
+
+# Queue implementation using a list (array)
+
+queue = []
+
+# Enqueue operation
+def enqueue():
+    customer = input("Enter customer name: ")
+    queue.append(customer)
+    print(customer, "added to the queue.")
+
+# Dequeue operation
+def dequeue():
+    if len(queue) == 0:
+        print("Queue is empty!")
+    else:
+        customer = queue.pop(0)
+        print(customer, "has been served.")
+
+# Display operation
+def display():
+    if len(queue) == 0:
+        print("Queue is empty!")
+    else:
+        print("Customers in queue:")
+        for customer in queue:
+            print(customer)
+
+# Menu-driven program
+while True:
+    print("\n--- Ticket Booking Counter ---")
+    print("1. Enqueue (Add Customer)")
+    print("2. Dequeue (Serve Customer)")
+    print("3. Display Queue")
+    print("4. Exit")
+
+    choice = int(input("Enter your choice: "))
+
+    if choice == 1:
+        enqueue()
+    elif choice == 2:
+        dequeue()
+    elif choice == 3:
+        display()
+    elif choice == 4:
+        print("Exiting program...")
+        break
+    else:
+        print("Invalid choice! Try again.")
