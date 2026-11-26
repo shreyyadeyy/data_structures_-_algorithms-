@@ -1,0 +1,91 @@
+def _sift_down_min(records, heap_size, root_idx):
+    """Restores Min-Heap property based on player score (index 0 of tuple)."""
+    smallest = root_idx
+    left = 2 * root_idx + 1
+    right = 2 * root_idx + 2
+
+    if left < heap_size and records[left][0] < records[smallest][0]:
+        smallest = left
+    if right < heap_size and records[right][0] < records[smallest][0]:
+        smallest = right
+
+    if smallest != root_idx:
+        records[root_idx], records[smallest] = records[smallest], records[root_idx]
+        _sift_down_min(records, heap_size, smallest)
+
+
+def sort_leaderboard_descending(players):
+    """
+    Ranks players from highest score to lowest using a Min-Heap.
+    Input: list of (score, player_name) tuples.
+    """
+    n = len(players)
+
+    # 1. Build Min-Heap bottom-up
+    for i in range(n // 2 - 1, -1, -1):
+        _sift_down_min(players, n, i)
+
+    # 2. Extract smallest score to the back on each step
+    for end in range(n - 1, 0, -1):
+        players[0], players[end] = players[end], players[0]
+        _sift_down_min(players, end, 0)
+
+    return players
+
+
+def _sift_down_max(records, heap_size, root_idx):
+    """Restores Max-Heap property based on player score (index 0 of tuple)."""
+    largest = root_idx
+    left = 2 * root_idx + 1
+    right = 2 * root_idx + 2
+
+    if left < heap_size and records[left][0] > records[largest][0]:
+        largest = left
+    if right < heap_size and records[right][0] > records[largest][0]:
+        largest = right
+
+    if largest != root_idx:
+        records[root_idx], records[largest] = records[largest], records[root_idx]
+        _sift_down_max(records, heap_size, largest)
+
+
+def sort_scores_ascending(players):
+    """
+    Sorts players from lowest score to highest using a Max-Heap.
+    Input: list of (score, player_name) tuples.
+    """
+    n = len(players)
+
+    # 1. Build Max-Heap bottom-up
+    for i in range(n // 2 - 1, -1, -1):
+        _sift_down_max(players, n, i)
+
+    # 2. Extract largest score to the back on each step
+    for end in range(n - 1, 0, -1):
+        players[0], players[end] = players[end], players[0]
+        _sift_down_max(players, end, 0)
+
+    return players
+
+
+# --- Example Usage ---
+if __name__ == "__main__":
+    match_results = [
+        (2450, "ShadowViper"),
+        (3890, "BlazeKnight"),
+        (1720, "PixelNinja"),
+        (4150, "ApexHunter"),
+        (3100, "CyberWolf"),
+        (2890, "NovaStrike"),
+    ]
+
+    top_down = sort_leaderboard_descending(match_results.copy())
+    bottom_up = sort_scores_ascending(match_results.copy())
+
+    print("=== Official Leaderboard (Min-Heap -> Descending) ===")
+    for rank, (score, player) in enumerate(top_down, start=1):
+        print(f"Rank #{rank}: {player:<14} | {score} pts")
+
+    print("\n=== Ascending Score Order (Max-Heap -> Ascending) ===")
+    for score, player in bottom_up:
+        print(f"{score} pts - {player}")
