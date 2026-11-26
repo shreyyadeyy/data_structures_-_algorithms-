@@ -1,0 +1,134 @@
+class SmartParkingLot:
+    def __init__(self, total_slots=10, with_replacement=False):
+        self.total_slots = total_slots
+        self.with_replacement = with_replacement
+        # Each slot stores None (never used), VACATED (tombstone), or (vehicle_no, owner_name)
+        self.slots = [None] * total_slots
+        self.VACATED = object()
+        self.occupied_count = 0
+
+    def _get_preferred_slot(self, vehicle_no):
+        # Extract digits if Indian plate format (e.g., "MH12AB1024" -> 1024)
+        # so slot modulo behavior is transparent and deterministic
+        digits = "".join(ch for ch in str(vehicle_no) if ch.isdigit())
+        numeric_key = int(digits) if digits else sum(ord(c) for c in str(vehicle_no))
+        return numeric_key % self.total_slots
+
+    def park_vehicle(self, vehicle_no, owner_name="Driver"):
+        if self.occupied_count >= self.total_slots:
+            return f"Parking Full: Cannot assign slot to {vehicle_no}."
+
+        # Prevent duplicate entry of an already-parked vehicle
+        existing_slot = self.find_vehicle(vehicle_no)
+        if existing_slot != -1:
+            return f"{vehicle_no} is already parked at Slot #{existing_slot}."
+
+        preferred = self._get_preferred_slot(vehicle_no)
+
+        # Case 1: Preferred slot is open
+        if self.slots[preferred] is None or self.slots[preferred] is self.VACATED:
+            self.slots[preferred] = (vehicle_no, owner_name)
+            self.occupied_count += 1
+            return f"Parked {vehicle_no} at preferred Slot #{preferred}."
+
+        # Case 2: Collision at preferred slot — check replacement rule
+        if self.with_replacement:
+            parked_vehicle, parked_owner = self.slots[preferred]
+            parked_preferred = self._get_preferred_slot(parked_vehicle)
+
+            if parked_preferred != preferred:
+                # Reassign displaced guest vehicle to next available slot
+                self.slots[preferred] = (vehicle_no, owner_name)
+                relocated_slot = self._probe_and_park(
+                    parked_vehicle, parked_owner, (preferred + 1) % self.total_slots
+                )
+                self.occupied_count += 1
+                return (
+                    f"Parked {vehicle_no} at preferred Slot #{preferred} "
+                    f"(relocated {parked_vehicle} to Slot #{relocated_slot})."
+                )
+
+        # Case 3: Linear probe forward for next available slot
+        assigned_slot = self._probe_and_park(vehicle_no, owner_name, preferred)
+        self.occupied_count += 1
+        return (
+            f"Conflict at Slot #{preferred}: Parked {vehicle_no} "
+            f"at Slot #{assigned_slot}."
+        )
+
+    def _probe_and_park(self, vehicle_no, owner_name, start_slot):
+        first_vacated = None
+        for step in range(self.total_slots):
+            idx = (start_slot + step) % self.total_slots
+            slot = self.slots[idx]
+
+            if slot is None:
+                target = first_vacated if first_vacated is not None else idx
+                self.slots[target] = (vehicle_no, owner_name)
+                return target
+
+            if slot is self.VACATED and first_vacated is None:
+                first_vacated = idx
+
+        if first_vacated is not None:
+            self.slots[first_vacated] = (vehicle_no, owner_name)
+            return first_vacated
+        return -1
+
+    def find_vehicle(self, vehicle_no):
+        preferred = self._get_preferred_slot(vehicle_no)
+        for step in range(self.total_slots):
+            idx = (preferred + step) % self.total_slots
+            slot = self.slots[idx]
+
+            if slot is None:
+                return -1  # Probe chain ends; vehicle not in lot
+            if slot is not self.VACATED and slot[0] == vehicle_no:
+                return idx
+        return -1
+
+    def exit_vehicle(self, vehicle_no):
+        slot_idx = self.find_vehicle(vehicle_no)
+        if slot_idx == -1:
+            return f"Vehicle {vehicle_no} not found in parking lot."
+
+        self.slots[slot_idx] = self.VACATED
+        self.occupied_count -= 1
+        return f"Vehicle {vehicle_no} exited from Slot #{slot_idx}."
+
+    def display_lot_status(self):
+        print(f"Occupancy: {self.occupied_count}/{self.total_slots}")
+        for idx, slot in enumerate(self.slots):
+            if slot is None:
+                state = "[ EMPTY ]"
+            elif slot is self.VACATED:
+                state = "[ VACATED ]"
+            else:
+                veh, owner = slot
+                pref = self._get_preferred_slot(veh)
+                state = f"{veh} ({owner}) | Preferred: #{pref}"
+            print(f"Slot #{idx}: {state}")
+
+
+# --- Example Usage ---
+if __name__ == "__main__":
+    arrivals = [
+        ("MH12AB1010", "Aarav"),   # Preferred: 1010 % 10 = 0
+        ("MH14CD2020", "Priya"),   # Preferred: 2020 % 10 = 0 (Collides with Aarav)
+        ("MH12EF3031", "Rohan"),   # Preferred: 3031 % 10 = 1 (Collides at #1)
+        ("MH01GH4041", "Sneha"),   # Preferred: 4041 % 10 = 1
+    ]
+
+    print("=== MODE 1: Linear Probing WITHOUT Replacement ===")
+    lot_standard = SmartParkingLot(total_slots=10, with_replacement=False)
+    for veh, owner in arrivals:
+        print(lot_standard.park_vehicle(veh, owner))
+    print()
+    lot_standard.display_lot_status()
+
+    print("\n=== MODE 2: Linear Probing WITH Replacement ===")
+    lot_replacement = SmartParkingLot(total_slots=10, with_replacement=True)
+    for veh, owner in arrivals:
+        print(lot_replacement.park_vehicle(veh, owner))
+    print()
+    lot_replacement.display_lot_status()
