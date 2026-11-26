@@ -1,0 +1,128 @@
+import bisect
+import os
+
+
+class SimpleIndexedFile:
+    def __init__(self, data_filepath="employees.dat", index_filepath="employees.idx"):
+        self.data_filepath = data_filepath
+        self.index_filepath = index_filepath
+        # In-memory sorted list of (key, byte_offset) tuples
+        self.index = []
+        self._load_index()
+
+    def _load_index(self):
+        """Loads sorted (key, offset) pairs from the index file if it exists."""
+        self.index = []
+        if not os.path.exists(self.index_filepath):
+            return
+
+        with open(self.index_filepath, "r", encoding="utf-8") as idx_file:
+            for line in idx_file:
+                line = line.strip()
+                if line:
+                    key_str, offset_str = line.split(":")
+                    self.index.append((int(key_str), int(offset_str)))
+        self.index.sort(key=lambda entry: entry[0])
+
+    def _save_index(self):
+        """Persists the sorted index entries to disk."""
+        with open(self.index_filepath, "w", encoding="utf-8") as idx_file:
+            for key, offset in self.index:
+                idx_file.write(f"{key}:{offset}\n")
+
+    def _find_index_pos(self, key):
+        """Binary searches the index for key. Returns position or -1."""
+        keys = [entry[0] for entry in self.index]
+        pos = bisect.bisect_left(keys, key)
+        if pos < len(self.index) and self.index[pos][0] == key:
+            return pos
+        return -1
+
+    def add_record(self, emp_id, name, department, salary):
+        """Appends a record to the data file and updates the sorted index file."""
+        if self._find_index_pos(emp_id) != -1:
+            raise ValueError(f"Duplicate primary key: {emp_id}")
+
+        record_line = f"{emp_id},{name},{department},{salary}\n".encode("utf-8")
+
+        # Append record and capture exact starting byte offset
+        with open(self.data_filepath, "ab") as data_file:
+            byte_offset = data_file.tell()
+            data_file.write(record_line)
+
+        # Insert into sorted index and save
+        bisect.insort(self.index, (emp_id, byte_offset))
+        self._save_index()
+
+    def search_record(self, emp_id):
+        """Finds byte offset via binary search on index, then seeks directly in data file."""
+        pos = self._find_index_pos(emp_id)
+        if pos == -1:
+            return None
+
+        _, byte_offset = self.index[pos]
+        with open(self.data_filepath, "rb") as data_file:
+            data_file.seek(byte_offset)
+            raw_line = data_file.readline().decode("utf-8").strip()
+
+        rec_id, name, dept, salary = raw_line.split(",")
+        return {
+            "emp_id": int(rec_id),
+            "name": name,
+            "department": dept,
+            "salary": int(salary),
+            "byte_offset": byte_offset,
+        }
+
+    def delete_record(self, emp_id):
+        """Removes key from the index file (logical deletion)."""
+        pos = self._find_index_pos(emp_id)
+        if pos == -1:
+            return False
+
+        self.index.pop(pos)
+        self._save_index()
+        return True
+
+    def display_files(self):
+        """Displays raw contents of both the index file and the data file."""
+        print("--- Index File (Sorted Key -> Byte Offset) ---")
+        if os.path.exists(self.index_filepath):
+            with open(self.index_filepath, "r", encoding="utf-8") as f:
+                print(f.read().strip() or "(empty)")
+
+        print("\n--- Data File (Insertion Order) ---")
+        if os.path.exists(self.data_filepath):
+            with open(self.data_filepath, "rb") as f:
+                while True:
+                    offset = f.tell()
+                    line = f.readline()
+                    if not line:
+                        break
+                    print(f"[Offset {offset:03d}] {line.decode('utf-8').strip()}")
+
+
+# --- Example Usage ---
+if __name__ == "__main__":
+    # Clean up previous run files if present
+    for path in ("employees.dat", "employees.idx"):
+        if os.path.exists(path):
+            os.remove(path)
+
+    db = SimpleIndexedFile("employees.dat", "employees.idx")
+
+    # Insert records out of primary-key order
+    db.add_record(105, "Priya Sharma", "Engineering", 95000)
+    db.add_record(101, "Aarav Patel", "Finance", 78000)
+    db.add_record(112, "Rohan Verma", "Operations", 82000)
+    db.add_record(103, "Sneha Nair", "Product", 91000)
+
+    db.display_files()
+
+    print("\n--- Direct Lookup for Employee ID 112 ---")
+    result = db.search_record(112)
+    print(result)
+
+    print("\n--- Deleting Employee ID 101 ---")
+    db.delete_record(101)
+    print("Search 101 after delete:", db.search_record(101))
