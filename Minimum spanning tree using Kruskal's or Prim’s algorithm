@@ -1,0 +1,96 @@
+import heapq
+
+class WeightedGraph:
+    def __init__(self):
+        # Adjacency list: {vertex: [(neighbor, weight), ...]}
+        self.adj_list = {}
+
+    def add_vertex(self, vertex):
+        if vertex not in self.adj_list:
+            self.adj_list[vertex] = []
+
+    def add_edge(self, u, v, weight):
+        self.add_vertex(u)
+        self.add_vertex(v)
+        # Undirected weighted edge
+        self.adj_list[u].append((v, weight))
+        self.adj_list[v].append((u, weight))
+
+    def display_adjacency_list(self):
+        for vertex, edges in sorted(self.adj_list.items()):
+            print(f"{vertex}: {edges}")
+
+    def prim_mst(self, start_vertex=None):
+        """
+        Generates the Minimum Spanning Tree using Prim's algorithm.
+        Returns (mst_edges, total_cost).
+        """
+        if not self.adj_list:
+            return [], 0
+
+        if start_vertex is None:
+            start_vertex = next(iter(self.adj_list))
+
+        visited = {start_vertex}
+        # Min-heap stores tuples: (weight, u, v)
+        min_heap = [
+            (weight, start_vertex, neighbor)
+            for neighbor, weight in self.adj_list[start_vertex]
+        ]
+        heapq.heapify(min_heap)
+
+        mst_edges = []
+        total_cost = 0
+
+        while min_heap and len(visited) < len(self.adj_list):
+            weight, u, v = heapq.heappop(min_heap)
+
+            if v in visited:
+                continue
+
+            visited.add(v)
+            mst_edges.append((u, v, weight))
+            total_cost += weight
+
+            for neighbor, edge_weight in self.adj_list[v]:
+                if neighbor not in visited:
+                    heapq.heappush(min_heap, (edge_weight, v, neighbor))
+
+        # Check if graph is disconnected
+        if len(visited) != len(self.adj_list):
+            raise ValueError("Graph is disconnected; a complete MST does not exist.")
+
+        return mst_edges, total_cost
+
+
+# --- Example Usage ---
+if __name__ == "__main__":
+    g = WeightedGraph()
+    edges = [
+        ("A", "B", 4),
+        ("A", "H", 8),
+        ("B", "C", 8),
+        ("B", "H", 11),
+        ("C", "D", 7),
+        ("C", "F", 4),
+        ("C", "I", 2),
+        ("D", "E", 9),
+        ("D", "F", 14),
+        ("E", "F", 10),
+        ("F", "G", 2),
+        ("G", "H", 1),
+        ("G", "I", 6),
+        ("H", "I", 7),
+    ]
+
+    for u, v, w in edges:
+        g.add_edge(u, v, w)
+
+    print("Adjacency List:")
+    g.display_adjacency_list()
+
+    mst, cost = g.prim_mst("A")
+    print("\nMinimum Spanning Tree Edges:")
+    for u, v, w in mst:
+        print(f"{u} -- {v} (weight: {w})")
+    print(f"Total MST Cost: {cost}")
