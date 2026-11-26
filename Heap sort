@@ -1,0 +1,74 @@
+def heapify_max(arr, heap_size, root_idx):
+    """Restores the Max-Heap property for the subtree rooted at root_idx."""
+    largest = root_idx
+    left = 2 * root_idx + 1
+    right = 2 * root_idx + 2
+
+    if left < heap_size and arr[left] > arr[largest]:
+        largest = left
+    if right < heap_size and arr[right] > arr[largest]:
+        largest = right
+
+    if largest != root_idx:
+        arr[root_idx], arr[largest] = arr[largest], arr[root_idx]
+        heapify_max(arr, heap_size, largest)
+
+
+def heap_sort_ascending(arr):
+    """Sorts a list in ascending order in-place using a Max-Heap."""
+    n = len(arr)
+
+    # Step 1: Build Max-Heap bottom-up
+    for i in range(n // 2 - 1, -1, -1):
+        heapify_max(arr, n, i)
+
+    # Step 2: Extract maximum element one by one to the end
+    for end in range(n - 1, 0, -1):
+        arr[0], arr[end] = arr[end], arr[0]
+        heapify_max(arr, end, 0)
+
+    return arr
+
+
+def heapify_min(arr, heap_size, root_idx):
+    """Restores the Min-Heap property for the subtree rooted at root_idx."""
+    smallest = root_idx
+    left = 2 * root_idx + 1
+    right = 2 * root_idx + 2
+
+    if left < heap_size and arr[left] < arr[smallest]:
+        smallest = left
+    if right < heap_size and arr[right] < arr[smallest]:
+        smallest = right
+
+    if smallest != root_idx:
+        arr[root_idx], arr[smallest] = arr[smallest], arr[root_idx]
+        heapify_min(arr, heap_size, smallest)
+
+
+def heap_sort_descending(arr):
+    """Sorts a list in descending order in-place using a Min-Heap."""
+    n = len(arr)
+
+    # Step 1: Build Min-Heap bottom-up
+    for i in range(n // 2 - 1, -1, -1):
+        heapify_min(arr, n, i)
+
+    # Step 2: Extract minimum element one by one to the end
+    for end in range(n - 1, 0, -1):
+        arr[0], arr[end] = arr[end], arr[0]
+        heapify_min(arr, end, 0)
+
+    return arr
+
+
+# --- Example Usage ---
+if __name__ == "__main__":
+    numbers = [14, 3, 27, 8, 19, 1, 11]
+
+    asc_result = heap_sort_ascending(numbers.copy())
+    desc_result = heap_sort_descending(numbers.copy())
+
+    print(f"Original array:           {numbers}")
+    print(f"Max-Heap (Ascending):     {asc_result}")
+    print(f"Min-Heap (Descending):    {desc_result}")
